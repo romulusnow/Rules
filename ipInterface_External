@@ -4,5 +4,5 @@
 DOMAIN-SUFFIX, ipinfo.io
 DOMAIN-SUFFIX, ip-api.com
 DOMAIN-SUFFIX, api-ipv4.ip.sb
-DOMAIN, https://api.ipapi.is
-DOMAIN, https://ipwho.is
+DOMAIN, api.ipapi.is
+DOMAIN, ipwho.is
