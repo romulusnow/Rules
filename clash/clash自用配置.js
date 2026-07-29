@@ -53,7 +53,7 @@ const ruleProviders = {
   "icloud": { ...ruleProviderCommon, "behavior": "domain", "url": "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt", "path": "./ruleset/loyalsoldier/icloud.yaml" },
   "apple": { ...ruleProviderCommon, "behavior": "domain", "url": "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt", "path": "./ruleset/loyalsoldier/apple.yaml" },
   "speedtest": { ...ruleProviderCommon, "behavior": "classical", "url": "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Speedtest/Speedtest.yaml", "path": "./ruleset/blackmatrix7/Speedtest.yaml" },
-  "emby": { ...ruleProviderCommon, "behavior": "classical", "url": "https://raw.githubusercontent.com/romulusnow/Rules/refs/heads/main/Emby.yaml", "path": "./rules/Emby.yaml" },
+  "emby": { ...ruleProviderCommon, "behavior": "classical", "url": "https://raw.githubusercontent.com/romulusnow/Rules/refs/heads/main/clash/Emby.yaml", "path": "./ruleset/romulusnow/Emby.yaml" },
   "gemini": { ...ruleProviderCommon, "behavior": "classical", "url": "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Gemini/Gemini.yaml", "path": "./ruleset/blackmatrix7/Gemini.yaml" },
   "youtube": { ...ruleProviderCommon, "behavior": "classical", "url": "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube.yaml", "path": "./ruleset/blackmatrix7/YouTube.yaml" },
   "google": { ...ruleProviderCommon, "behavior": "classical", "url": "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.yaml", "path": "./ruleset/blackmatrix7/Google.yaml" },
