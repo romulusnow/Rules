@@ -1,8 +1,0 @@
-# NAME: ipInterface_External
-# DESCRIPTION: 国外（代理）接口分流
-
-DOMAIN-SUFFIX, ipinfo.io
-DOMAIN-SUFFIX, ip-api.com
-DOMAIN-SUFFIX, api-ipv4.ip.sb
-DOMAIN, api.ipapi.is
-DOMAIN, ipwho.is
