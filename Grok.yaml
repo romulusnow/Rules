@@ -1,7 +1,0 @@
-# NAME: Grok
-# AUTHOR: romulus
-
-payload:
-  - DOMAIN-SUFFIX,grok.com
-  - DOMAIN-SUFFIX,xai.com
-  - DOMAIN-SUFFIX,assets.xai.com
