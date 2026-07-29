@@ -1,0 +1,7 @@
+# NAME: Grok分流
+# AUTHOR: romulus
+
+payload:
+  - DOMAIN-SUFFIX,grok.com
+  - DOMAIN-SUFFIX,xai.com
+  - DOMAIN-SUFFIX,assets.xai.com
