@@ -1,7 +1,0 @@
-# NAME: Grok
-# AUTHOR: romulus
-# DESCRIPTION: Grok 分流规则
-
-DOMAIN-SUFFIX, grok.com
-DOMAIN-SUFFIX, xai.com
-DOMAIN-SUFFIX, assets.xai.com
