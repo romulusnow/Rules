@@ -2,19 +2,21 @@
 const domesticNameservers = [
   "223.5.5.5",
   "119.29.29.29",
-  "https://dns.alidns.com/dns-query", // 阿里云公共DNS
-  "https://doh.pub/dns-query", // 腾讯DNSPod
-  "https://doh.360.cn/dns-query" // 360安全DNS
+  "https://dns.alidns.com/dns-query",
+  "https://doh.pub/dns-query",
+  "https://doh.360.cn/dns-query"
 ];
+
 // 国外DNS服务器
 const foreignNameservers = [
-  "https://1.1.1.1", // Cloudflare(主)
-  "https://1.0.0.1", // Cloudflare(备)
-  "https://208.67.222.222/dns-query", // OpenDNS(主)
-  "https://208.67.220.220/dns-query", // OpenDNS(备)
-  "https://194.242.2.2/dns-query", // Mullvad(主)
-  "https://194.242.2.3/dns-query" // Mullvad(备)
+  "https://1.1.1.1/dns-query",
+  "https://1.0.0.1/dns-query",
+  "https://208.67.222.222/dns-query",
+  "https://208.67.220.220/dns-query",
+  "https://194.242.2.2/dns-query",
+  "https://194.242.2.3/dns-query"
 ];
+
 // DNS配置
 const dnsConfig = {
   "enable": true,
@@ -41,12 +43,14 @@ const dnsConfig = {
     "geosite:google,youtube,telegram,gfw,geolocation-!cn": foreignNameservers
   }
 };
+
 // 规则集通用配置
 const ruleProviderCommon = {
   "type": "http",
   "format": "yaml",
   "interval": 86400
 };
+
 // 规则集配置
 const ruleProviders = {
   "reject": { ...ruleProviderCommon, "behavior": "domain", "url": "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt", "path": "./ruleset/loyalsoldier/reject.yaml" },
@@ -71,6 +75,7 @@ const ruleProviders = {
   "lancidr": { ...ruleProviderCommon, "behavior": "ipcidr", "url": "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt", "path": "./ruleset/loyalsoldier/lancidr.yaml" },
   "applications": { ...ruleProviderCommon, "behavior": "classical", "url": "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt", "path": "./ruleset/loyalsoldier/applications.yaml" }
 };
+
 // 规则
 const rules = [
   "RULE-SET,applications,全局直连",
@@ -102,6 +107,7 @@ const rules = [
   "GEOIP,CN,全局直连,no-resolve",
   "MATCH,漏网之鱼"
 ];
+
 // 代理组通用配置
 const groupBaseOption = {
   "interval": 300,
@@ -114,20 +120,49 @@ const groupBaseOption = {
 
 // 程序入口
 function main(config) {
-  // 基础校验：部分客户端对可选链或特定字段格式敏感，做一层基础保护
   if (!config) config = {};
+
+  // 1. 获取来自 Sub-Store、且保持了原始排序的全部节点名称
+  const rawProxies = config.proxies || [];
+  const allProxyNames = rawProxies.map(p => p.name);
+
+  // 通用过滤函数（带有指定源列表）
+  const filterList = (sourceList, regex) => {
+    const matched = sourceList.filter(name => regex.test(name));
+    // 若匹配结果为空，返回原列表作为 fallback 容错，防止策略组报空错误
+    return matched.length > 0 ? matched : sourceList;
+  };
+
+  // 全局节点过滤辅助函数
+  const getFilterNodes = (regex) => filterList(allProxyNames, regex);
+
+  // 2. 精准定义各地区节点列表
+  const hkNodes = getFilterNodes(/香港|港|HK|Hong Kong|HongKong/i);
+  const sgNodes = getFilterNodes(/新加坡|狮城|獅城|SG|Singapore/i);
   
+  // 精准 US 匹配（使用 \b 单词边界，防止匹配 Australia, Russia 等）
+  const usNodes = getFilterNodes(/(?:美国|美|United States|\bUS\b)/i);
+  
+  const twNodes = getFilterNodes(/台湾|台灣|台|TW|Taiwan/i);
+  const jpNodes = getFilterNodes(/^(?!.*(?:尼日利亚|NG|Nigeria)).*(?:日本|日|\bJP\b|Japan)/i);
+  
+  // 精准 MO 匹配（使用 \b 单词边界，防止匹配包含 mo 的其他字符串）
+  const moNodes = getFilterNodes(/(?:澳门|澳門|\bMO\b|Macau)/i);
+
+  // 3. 嵌套筛选家宽节点：直接在对应地区的节点列表结果上做二次正则过滤
+  const twHomeNodes = filterList(twNodes, /家宽|Seed|OP|Ap|TBC|KBT/i);
+  const usHomeNodes = filterList(usNodes, /ATT|Haw|RCN|WAVE|COX|Link|Inter|Fro|家宽/i);
+
   // 覆盖原配置中DNS配置
   config["dns"] = dnsConfig;
 
-  // 覆盖原配置中的代理组
+  // 4. 覆盖原配置中的代理组
   config["proxy-groups"] = [
     {
       ...groupBaseOption,
       "name": "节点选择",
       "type": "select",
-      "proxies": ["延迟选优", "HK", "SG", "US", "TW", "JP"],
-      "include-all": true,
+      "proxies": ["延迟选优", "HK", "SG", "US", "TW", "JP", ...allProxyNames],
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bypass.png"
     },
     {
@@ -135,90 +170,72 @@ function main(config) {
       "name": "延迟选优",
       "type": "url-test",
       "tolerance": 100,
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?i)港|hk|hongkong|hong kong|台|tw",
+      "proxies": getFilterNodes(/香港|港|HK|Hong Kong|HongKong|台湾|台灣|台|TW|Taiwan/i),
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available_1.png"
     },
     {
       ...groupBaseOption,
       "name": "HK",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?i)港|hk|hongkong|hong kong",
+      "proxies": hkNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
     },
     {
       ...groupBaseOption,
       "name": "SG",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?=.*(新加|狮|獅|SG|(?i)Singapore))^((?!(台|日|韩|美)).)*$",
+      "proxies": sgNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Singapore.png"
     },
     {
       ...groupBaseOption,
       "name": "US",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?=.*(美|US|(?i)States|American|us))^((?!(港|台|日|韩|新|澳|巴|加)).)*$",
+      "proxies": usNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
     },
     {
       ...groupBaseOption,
       "name": "TW",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?i)台|tw|taiwan",
+      "proxies": twNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Taiwan.png"
     },
     {
       ...groupBaseOption,
       "name": "JP",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?i)日本|jp|japan",
+      "proxies": jpNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Japan.png"
     },
     {
       ...groupBaseOption,
       "name": "MO",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?i)澳门|MO|macau",
+      "proxies": moNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Macao.png"
     },
     {
       ...groupBaseOption,
       "name": "TW home",
-      "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?=.*(台|TW|(?i)Taiwan))(?=.*(H|家宽|Seed|OP|Ap|TBC|KBT))^((?!(港|日|韩|新|美)).)*$",
+      "type": "url-test",
+      "tolerance": 100,
+      "proxies": twHomeNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Semporia/Hand-Painted-icon@master/Rounded_Rectangle/Taiwan.png"
     },
     {
       ...groupBaseOption,
       "name": "US home",
-      "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "(?=.*(美|US|(?i)States|American))(?=.*(ATT|Haw|RCN|WAVE|COX|Link|Inter|Fro|家宽))^((?!(港|台|日|韩|新)).)*$",
+      "type": "url-test",
+      "tolerance": 100,
+      "proxies": usHomeNodes,
       "icon": "https://fastly.jsdelivr.net/gh/Semporia/Hand-Painted-icon@master/Rounded_Rectangle/United_States.png"
     },
     {
       ...groupBaseOption,
       "name": "低倍率",
       "type": "select",
-      "proxies": [],
-      "include-all": true,
-      "filter": "^(?!.*traffic)(?i).*(倍率[:：]?\\s*0\\.[1-5]|0\\.[1-5]\\s*[x倍]?)",
+      "proxies": getFilterNodes(/0\.[1-5]/i),
       "icon": "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Dark/x0.3.png"
     },
     {
@@ -267,8 +284,8 @@ function main(config) {
       ...groupBaseOption,
       "name": "Gemini",
       "type": "select",
-      "proxies": ["节点选择", "SG","Google", "JP", "US home"],
-      "icon": "https:\/\/raw.githubusercontent.com\/lige47\/QuanX-icon-rule\/main\/icon\/04ProxySoft\/gemini(1).png"
+      "proxies": ["节点选择", "SG", "Google", "JP", "US home"],
+      "icon": "https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/gemini(1).png"
     },
     {
       ...groupBaseOption,
@@ -335,10 +352,9 @@ function main(config) {
     }
   ];
 
-  // 覆盖原配置中的规则
+  // 5. 覆盖原配置中的规则与规则集
   config["rule-providers"] = ruleProviders;
   config["rules"] = rules;
 
-  // 返回修改后的配置
   return config;
 }
